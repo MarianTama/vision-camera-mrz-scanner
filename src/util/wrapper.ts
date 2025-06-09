@@ -1,7 +1,5 @@
-import type {Frame} from 'react-native-vision-camera';
-import type {MRZFrame} from '../types/types';
-
-export function __scanMRZ(_frame: Frame): MRZFrame {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const __scanMRZ = (frame: any): any => {
   'worklet';
-  return {} as MRZFrame;
-}
+  return {}; // dummy return
+};
