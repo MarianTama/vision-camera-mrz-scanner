@@ -20,10 +20,16 @@ export const boundingBoxAdjustToView =
           }),
           adjustRect(rect: Rect): Rect {
             return {
-              left: rect.left * widthRatio,
-              top: rect.top * heightRatio,
+              x: rect.x * widthRatio,
+              y: rect.y * heightRatio,
               width: rect.width * widthRatio,
               height: rect.height * heightRatio,
+              boundingCenterX: rect.boundingCenterX * widthRatio,
+              boundingCenterY: rect.boundingCenterY * heightRatio,
+              cornerPoints: rect.cornerPoints.map(point => ({
+                x: point.x * widthRatio,
+                y: point.y * heightRatio,
+              })),
             };
           },
         };
@@ -83,10 +89,16 @@ export const boundingBoxAdjustToView =
             y: (point.y - offsetY) * heightRatio,
           }),
           adjustRect: (rect: Rect) => ({
-            top: (rect.top - offsetY - verticalCropPadding) * heightRatio,
-            left: (rect.left - offsetX - horizontalCropPadding) * widthRatio,
-            height: (rect.height + verticalCropPadding) * heightRatio,
+            x: (rect.x - offsetX - horizontalCropPadding) * widthRatio,
+            y: (rect.y - offsetY - verticalCropPadding) * heightRatio,
             width: (rect.width + horizontalCropPadding) * widthRatio,
+            height: (rect.height + verticalCropPadding) * heightRatio,
+            boundingCenterX: (rect.boundingCenterX - offsetX) * widthRatio,
+            boundingCenterY: (rect.boundingCenterY - offsetY) * heightRatio,
+            cornerPoints: rect.cornerPoints.map(point => ({
+              x: (point.x - offsetX) * widthRatio,
+              y: (point.y - offsetY) * heightRatio,
+            })),
           }),
         };
       };

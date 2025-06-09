@@ -1,6 +1,7 @@
 import React, {FC, PropsWithChildren, useEffect, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
-import {MRZCamera, MRZScannerProps} from 'vision-camera-mrz-scanner';
+import MRZCamera from './MRZCamera';
+import type {MRZScannerProps} from '../types/types';
 
 import type {MRZProperties} from '../types/mrzProperties';
 import {parseMRZ} from '../util/mrzParser';
@@ -223,12 +224,12 @@ const MRZScanner: FC<PropsWithChildren<MRZScannerProps>> = ({
   return (
     <View testID="scanDocumentView" style={StyleSheet.absoluteFill}>
       <MRZCamera
-        onData={lines => {
+        onData={(lines: string[]) => {
           if (onData) {
             onData(lines);
           } else {
-            const mrzResults = parseMRZ(lines);
-            if (mrzResults) {
+            const mrzResults = parseMRZ(lines) as MRZProperties | undefined;
+            if (mrzResults && mrzResults.docMRZ) {
               if (currentMRZMatchesPreviousMRZs(numQAChecks, mrzResults)) {
                 setScanSuccess(true);
                 setIsActive(false);
@@ -246,7 +247,7 @@ const MRZScanner: FC<PropsWithChildren<MRZScannerProps>> = ({
         onSkipPressed={onSkipPressed}
         cameraProps={cameraProps}
         enableBoundingBox={enableBoundingBox}
-        isActiveCamera={isActiveCamera ?? isActive} // if isActiveCamera is not defined, use the internal state
+        isActiveCamera={isActiveCamera ?? isActive}
       />
       {enableMRZFeedBack ? (
         <View style={[styles.feedbackContainer, mrzFeedbackContainer]}>
