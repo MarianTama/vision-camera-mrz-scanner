@@ -27,7 +27,7 @@ const MRZScanner: FC<PropsWithChildren<MRZScannerProps>> = ({
   //*****************************************************************************************
   //  setting up the state
   //*****************************************************************************************
-
+  console.log('Using forked MRZScanner');
   const numQAChecks = numberOfQAChecks ?? 3;
   const [scanSuccess, setScanSuccess] = useState(false);
   const [docMRZQAList, setDocMRZQAList] = useState<(string | undefined)[]>([]);
