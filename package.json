@@ -32,7 +32,6 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.ts\"",
-    "prepare": "bob build",
     "prepack": "bob build",
     "release": "dotenv release-it --",
     "example": "yarn --cwd example",
