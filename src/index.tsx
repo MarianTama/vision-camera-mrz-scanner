@@ -24,4 +24,4 @@ export {boundingBoxAdjustToView} from './util/boundingBoxAdjustToView';
 // resolutions.ts
 export {sortFormatsByResolution} from './util/generalUtil';
 // wrapper.ts
-export {scanMRZ} from './util/wrapper';
+export {default as scanMRZ} from './util/wrapper';

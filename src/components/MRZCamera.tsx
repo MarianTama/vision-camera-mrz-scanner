@@ -25,8 +25,6 @@ import {
   Frame,
   useCameraDevices,
   useFrameProcessor,
-  CameraPermissionStatus,
-  CameraDevice,
 } from 'react-native-vision-camera';
 import {
   boundingBoxAdjustToView,
@@ -34,10 +32,9 @@ import {
   Dimensions,
   MRZCameraProps,
   MRZFrame,
-  TextBlock,
-} from '../types/types';
-import {scanMRZ} from '../util/wrapper';
-import {sortFormatsByResolution} from '../util/sortFormatsByResolution';
+  scanMRZ,
+  sortFormatsByResolution,
+} from 'vision-camera-mrz-scanner';
 
 const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
   enableBoundingBox,
@@ -56,16 +53,15 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
   cameraDirection,
   isActiveCamera,
 }) => {
+  //*****************************************************************************************
+  //  setting up the state
+  //*****************************************************************************************
   // Permissions
-  const [hasPermission, setHasPermission] =
-    useState<CameraPermissionStatus>('not-determined');
-
+  const [hasPermission, setHasPermission] = React.useState(false);
   // camera states
   const devices = useCameraDevices();
   const direction: 'front' | 'back' = cameraDirection ?? 'back';
-  const device = devices[direction as keyof typeof devices] as
-    | CameraDevice
-    | undefined;
+  const device = devices[direction];
   const camera = useRef<Camera>(null);
   const {height: screenHeight, width: screenWidth} = useWindowDimensions();
   const [isActive, setIsActive] = useState(true);
@@ -73,45 +69,20 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
   const [ocrElements, setOcrElements] = useState<BoundingFrame[]>([]);
   const [frameDimensions, setFrameDimensions] = useState<Dimensions>();
   const landscapeMode = screenWidth > screenHeight;
-  const [pixelRatio, setPixelRatio] = useState<number>(1);
+  const [pixelRatio, setPixelRatio] = React.useState<number>(1);
 
-  // Cleanup function to release camera resources
-  const cleanupCamera = useCallback(async () => {
-    try {
-      if (camera.current) {
-        // Stop any ongoing camera operations
-        setIsActive(false);
-        // Clear any pending frame processing
-        setOcrElements([]);
-        setFeedbackText('');
-        // Reset camera state
-        setIsActive(false);
-      }
-    } catch (error) {
-      console.warn('Error cleaning up camera:', error);
-    }
-  }, []);
+  //*****************************************************************************************
+  // Comp Logic
+  //*****************************************************************************************
 
-  // Handle component unmount
+  // const xRatio = frame.width / WINDOW_WIDTH;
+  // const yRatio = frame.height / WINDOW_HEIGHT;
+  /* A cleanup function that is called when the component is unmounted. */
   useEffect(() => {
     return () => {
-      cleanupCamera();
+      setIsActive(false);
     };
-  }, [cleanupCamera]);
-
-  // Handle isActiveCamera prop changes
-  useEffect(() => {
-    if (isActiveCamera === false) {
-      cleanupCamera();
-    }
-  }, [isActiveCamera, cleanupCamera]);
-
-  // Handle scanSuccess changes
-  useEffect(() => {
-    if (scanSuccess) {
-      cleanupCamera();
-    }
-  }, [scanSuccess, cleanupCamera]);
+  }, []);
 
   // which format should we use
   const formats = useMemo(
@@ -119,6 +90,7 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
     [device?.formats],
   );
 
+  //figure our what happens if it is undefined?
   const [format, setFormat] = useState(
     formats && formats.length > 0 ? formats[0] : undefined,
   );
@@ -148,6 +120,7 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
       ) {
         setFeedbackText('');
       }
+      /* Scanning the text from the image and then setting the state of the component. */
 
       if (
         data &&
@@ -156,7 +129,7 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
         data.result.blocks.length > 0
       ) {
         let updatedOCRElements: BoundingFrame[] = [];
-        data.result.blocks.forEach((block: TextBlock) => {
+        data.result.blocks.forEach(block => {
           if (block.frame.width / screenWidth < 0.8) {
             setFeedbackText('Hold Still');
           } else {
@@ -166,7 +139,7 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
         });
 
         let lines: string[] = [];
-        data.result.blocks.forEach((block: TextBlock) => {
+        data.result.blocks.forEach(block => {
           lines.push(block.text);
         });
         if (lines.length > 0 && isActive && onData) {
@@ -183,7 +156,8 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
   /* Setting the format to the first format in the formats array. */
   useEffect(() => {
     setFormat(formats && formats.length > 0 ? formats[0] : undefined);
-  }, [device, formats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [device]);
 
   /* Using the useFrameProcessor hook to process the video frames. */
   const frameProcessor = useFrameProcessor(
@@ -200,7 +174,7 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
   useEffect(() => {
     (async () => {
       const status = await Camera.requestCameraPermission();
-      setHasPermission(status);
+      setHasPermission(status === 'authorized');
     })();
   }, []);
 
@@ -261,9 +235,13 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
     },
   });
 
+  //*****************************************************************************************
+  // Components
+  //*****************************************************************************************
+
   return (
     <View style={style}>
-      {device && hasPermission === 'granted' ? (
+      {device && hasPermission ? (
         <Camera
           style={cameraProps?.style ?? StyleSheet.absoluteFill}
           device={cameraProps?.device ?? device}
@@ -281,11 +259,25 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
           audio={cameraProps?.audio}
           zoom={cameraProps?.zoom}
           enableZoomGesture={cameraProps?.enableZoomGesture}
+          preset={cameraProps?.preset}
           format={cameraProps?.format ?? format}
           fps={cameraProps?.fps ?? 10}
+          hdr={cameraProps?.hdr}
+          lowLightBoost={cameraProps?.lowLightBoost}
+          colorSpace={cameraProps?.colorSpace}
+          videoStabilizationMode={cameraProps?.videoStabilizationMode}
+          enableDepthData={cameraProps?.enableDepthData}
+          enablePortraitEffectsMatteDelivery={
+            cameraProps?.enablePortraitEffectsMatteDelivery
+          }
+          enableHighQualityPhotos={cameraProps?.enableHighQualityPhotos}
           onError={cameraProps?.onError}
           onInitialized={cameraProps?.onInitialized}
+          onFrameProcessorPerformanceSuggestionAvailable={
+            cameraProps?.onFrameProcessorPerformanceSuggestionAvailable
+          }
           frameProcessor={cameraProps?.frameProcessor ?? frameProcessor}
+          frameProcessorFps={cameraProps?.frameProcessorFps ?? 30}
           onLayout={(event: LayoutChangeEvent) => {
             setPixelRatio(
               event.nativeEvent.layout.width /
@@ -296,7 +288,7 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
           }}
         />
       ) : undefined}
-      <View style={[styles.boundingBox]} />
+      {/* <View style={[styles.boundingBox]} /> */}
       {enableBoundingBox && ocrElements.length > 0 ? (
         <View style={boundingStyle} testID="faceDetectionBoxView">
           {frameDimensions &&
@@ -313,14 +305,15 @@ const MRZCamera: FC<PropsWithChildren<MRZCameraProps>> = ({
               );
               return ocrElements
                 ? ocrElements.map((i, index) => {
-                    const adjusted = adjustRect(i);
+                    const {left, ...others} = adjustRect(i);
                     return (
                       <View
                         key={index}
                         style={[
                           styles.boundingBox,
                           {
-                            ...adjusted,
+                            ...others,
+                            left: left,
                           },
                           boundingBoxStyle,
                         ]}

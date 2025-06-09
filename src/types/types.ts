@@ -1,8 +1,8 @@
 import type {StyleProp, ViewStyle} from 'react-native';
 import type {CameraProps} from 'react-native-vision-camera';
+import type {MRZProperties} from 'vision-camera-mrz-scanner';
 
-// Camera and Scanner Props
-export interface MRZCameraProps {
+export type MRZCameraProps = {
   /**
    * If true, the bounding box will be drawn around the face detected.
    */
@@ -47,12 +47,12 @@ export interface MRZCameraProps {
   /**
    * all options for the camera
    */
-  cameraProps?: Partial<CameraProps>;
-  onData?: (lines: string[]) => void;
+  cameraProps?: CameraProps;
+  onData?: (OCRResults: string[]) => void | Promise<void>;
   scanSuccess?: boolean;
   cameraDirection?: 'front' | 'back'; // defaults to back
   isActiveCamera?: boolean;
-}
+};
 
 export type MRZScannerProps = MRZCameraProps & {
   /**
@@ -76,118 +76,25 @@ export type MRZScannerProps = MRZCameraProps & {
   mrzFeedbackTextStyle?: StyleProp<ViewStyle>;
 };
 
-// MRZ Data Types
-export type MRZProperties = {
-  docMRZ: string;
-  docType?:
-    | 'ADIT_STAMP'
-    | 'ALIEN_REGISTRATION'
-    | 'BIRTH_CERTIFICATE'
-    | 'BORDER_CROSSING_CARD'
-    | 'CEDULA'
-    | 'CERTIFICATE_OF_NATURALIZATION'
-    | 'CITIZENSHIP_CARD'
-    | 'DRIVERS_LICENSE'
-    | 'DSP150_FORM'
-    | 'EMPLOYEE_AUTHORIZATION'
-    | 'GOVERNMENT_ISSUED_ID'
-    | 'I512'
-    | 'I551'
-    | 'I94'
-    | 'INTERPOL_NOTICE'
-    | 'MILITARY_CARD'
-    | 'NATIONAL_ID'
-    | 'OTHER'
-    | 'PASSPORT'
-    | 'REENTRY_PERMIT'
-    | 'REFUGEE_PERMIT'
-    | 'REFUGEE_TRAVEL_DOCUMENT'
-    | 'REFUGEE_ASYLEE'
-    | 'TRANSPORTATION_LETTER'
-    | 'TRIBAL_CARD'
-    | 'TRUSTED_TRAVELER_CARD'
-    | 'VISA'
-    | 'VOTER_REGISTRATION'
-    | 'ADVANCE_PAROLE_DOCUMENT'
-    | 'EMPLOYEE_AUTHORIZATION_DOCUMENT'
-    | 'PERMANENT_RESIDENT_CARD'
-    | 'REFUGEE_TRAVEL_DOCUMENT_REENTRY_PERMIT';
-  issuingCountry?: string;
-  givenNames?: string;
-  lastNames?: string;
-  idNumber?: string;
-  nationality?: string;
-  dob?: string;
-  gender?: string;
-  docExpirationDate?: string;
-  additionalInformation?: string;
+export type BoundingFrame = {
+  x: number;
+  y: number;
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+  boundingCenterX: number;
+  boundingCenterY: number;
 };
-
-// OCR and Text Recognition Types
-export interface MRZFrame {
-  result: {
-    blocks: TextBlock[];
-  };
-}
-
-export interface TextBlock {
-  text: string;
-  frame: BoundingFrame;
-}
-
-export interface TextElement {
-  text: string;
-  frame: BoundingFrame;
-  cornerPoints: Point[];
-}
-
-export interface TextLine {
-  text: string;
-  elements: TextElement[];
-  frame: BoundingFrame;
-  recognizedLanguages: string[];
-  cornerPoints: Point[];
-}
-
-export interface Text {
-  text: string;
-  blocks: TextBlock[];
-}
-
-// Geometry Types
-export interface BoundingFrame {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-export interface Dimensions {
-  width: number;
-  height: number;
-}
-
-export interface Point {
-  x: number;
-  y: number;
-}
-
+export type Point = {x: number; y: number};
 export interface Size<T = number> {
   width: T;
   height: T;
 }
 
-export interface Rect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  boundingCenterX: number;
-  boundingCenterY: number;
-  cornerPoints: Point[];
-}
-
-export interface OCRElement {
+export type OCRElement = {
   type: 'block' | 'line' | 'element';
   index: number;
   bounds: {
@@ -195,37 +102,71 @@ export interface OCRElement {
     origin: Point;
   };
   value: string;
-}
+};
 
-export const boundingBoxAdjustToView = (
-  frameDimensions: Dimensions,
-  viewDimensions: Dimensions,
-  isRotated: boolean,
-  _verticalCropPadding: number = 0,
-  _horizontalCropPadding: number = 0,
-) => {
-  const {width: frameWidth, height: frameHeight} = frameDimensions;
-  const {width: viewWidth, height: viewHeight} = viewDimensions;
+export type TextElement = {
+  text: string;
+  frame: BoundingFrame;
+  cornerPoints: Point[];
+};
 
-  const widthRatio = viewWidth / frameWidth;
-  const heightRatio = viewHeight / frameHeight;
+export type TextLine = {
+  text: string;
+  elements: TextElement[];
+  frame: BoundingFrame;
+  recognizedLanguages: string[];
+  cornerPoints: Point[];
+};
 
-  const adjustRect = (rect: BoundingFrame) => {
-    if (isRotated) {
-      return {
-        x: rect.y * widthRatio,
-        y: rect.x * heightRatio,
-        width: rect.height * widthRatio,
-        height: rect.width * heightRatio,
-      };
-    }
-    return {
-      x: rect.x * widthRatio,
-      y: rect.y * heightRatio,
-      width: rect.width * widthRatio,
-      height: rect.height * heightRatio,
-    };
-  };
+export type TextBlock = {
+  text: string;
+  lines: TextLine[];
+  frame: BoundingFrame;
+  recognizedLanguages: string[];
+  cornerPoints: Point[];
+};
 
-  return {adjustRect};
+export type Text = {
+  text: string;
+  blocks: TextBlock[];
+};
+
+export type MRZFrame = {
+  result: Text;
+};
+
+/**
+ * Dimensions is an object with a width property that is a number and a height property that is a
+ * number.
+ * @property {number} width - The width of the image in pixels.
+ * @property {number} height - The height of the image in pixels.
+ */
+export type Dimensions = {width: number; height: number};
+
+/**
+ * Rect is an object with four properties: top, left, height, and width, all of which are numbers.
+ * @property {number} top - The top position of the element.
+ * @property {number} left - The x-coordinate of the top-left corner of the rectangle.
+ * @property {number} height - The height of the element.
+ * @property {number} width - The width of the element.
+ */
+export type Rect = {
+  /** the y coordinate in the exact center of the face bounds */
+  boundingCenterY?: number;
+  /** the x coordinate in the exact center of the face bounds */
+  boundingCenterX?: number;
+  /** the top of the face bounds */
+  top: number;
+  /** the left of the face bounds */
+  left: number;
+  /** the bottom of the face bounds */
+  bottom?: number;
+  /** the right of the face bounds */
+  right?: number;
+  /** the height of the face bounds */
+  height: number;
+  /** the width of the face bounds */
+  width: number;
+  x?: number;
+  y?: number;
 };
