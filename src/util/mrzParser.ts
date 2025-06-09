@@ -177,7 +177,7 @@ const parse2LineMRZ = (firstRow: string, secondRow: string) => {
     dob: dob,
     gender: gender,
     docExpirationDate: docExpirationDate,
-    additionalInformation: undefined, // TODO remove? (The logic for extracting additional information was deleted since we're not using it)
+    additionalInformation: undefined,
   };
 };
 

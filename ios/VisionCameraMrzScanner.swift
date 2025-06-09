@@ -1,5 +1,6 @@
 import Vision
 import AVFoundation
+import UIKit
 import MLKitVision
 import MLKitTextRecognition
 
@@ -118,9 +119,18 @@ public class VisionCameraMrzScanner: NSObject, FrameProcessorPluginBase {
         }
 
         let visionImage = VisionImage(buffer: frame.buffer)
-        
-        // TODO: Get camera orientation state
-        visionImage.orientation = .up
+
+        // Determine orientation based on device orientation
+        switch UIDevice.current.orientation {
+        case .landscapeLeft:
+            visionImage.orientation = .left
+        case .landscapeRight:
+            visionImage.orientation = .right
+        case .portraitUpsideDown:
+            visionImage.orientation = .down
+        default:
+            visionImage.orientation = .up
+        }
         
         var result: Text
         do {
